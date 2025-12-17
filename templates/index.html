@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pi Monitor Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🍇 Raspberry Pi Monitor</h1>
+            <p class="subtitle">Home Server Status Dashboard</p>
+            <div class="last-update">Last updated: <span id="timestamp">Loading...</span></div>
+        </header>
+
+        <div class="dashboard-grid">
+            <!-- System Health Card -->
+            <div class="card">
+                <h2 class="card-title">💻 System Health</h2>
+                <div class="metric-grid">
+                    <div class="metric">
+                        <div class="metric-label">CPU Usage</div>
+                        <div class="metric-value" id="cpu-usage">--%</div>
+                        <div class="metric-bar">
+                            <div class="metric-bar-fill" id="cpu-bar"></div>
+                        </div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">CPU Temp</div>
+                        <div class="metric-value" id="cpu-temp">--°C</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">RAM Usage</div>
+                        <div class="metric-value" id="ram-usage">-- MB</div>
+                        <div class="metric-bar">
+                            <div class="metric-bar-fill" id="ram-bar"></div>
+                        </div>
+                        <div class="metric-subtext" id="ram-detail">-- / -- MB (--% free)</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Disk Space</div>
+                        <div class="metric-value" id="disk-usage">-- GB</div>
+                        <div class="metric-bar">
+                            <div class="metric-bar-fill" id="disk-bar"></div>
+                        </div>
+                        <div class="metric-subtext" id="disk-detail">-- / -- GB used</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Uptime</div>
+                        <div class="metric-value" id="uptime">--</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Services Status Card -->
+            <div class="card">
+                <h2 class="card-title">⚙️ Services</h2>
+                <div class="services-grid" id="services-grid">
+                    <!-- Services will be populated by JS -->
+                </div>
+            </div>
+
+            <!-- Pi-hole Stats Card -->
+            <div class="card">
+                <h2 class="card-title">🛡️ Pi-hole</h2>
+                <div class="metric-grid">
+                    <div class="metric highlight">
+                        <div class="metric-label">Ads Blocked Today</div>
+                        <div class="metric-value large" id="ads-blocked">--</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">DNS Queries</div>
+                        <div class="metric-value" id="dns-queries">--</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Block Percentage</div>
+                        <div class="metric-value" id="block-percentage">--%</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Status</div>
+                        <div class="status-badge" id="pihole-status">--</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Network Info Card -->
+            <div class="card">
+                <h2 class="card-title">🌐 Network</h2>
+                <div class="metric-grid">
+                    <div class="metric">
+                        <div class="metric-label">Public IP</div>
+                        <div class="metric-value small" id="public-ip">--</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Internet Latency</div>
+                        <div class="metric-value" id="latency">-- ms</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Tailscale IP</div>
+                        <div class="metric-value small" id="tailscale-ip">--</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Auto-refreshes every 10 seconds</p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
