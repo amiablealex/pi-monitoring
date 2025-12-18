@@ -12,6 +12,7 @@
     --warning: #FFB74D;
     --danger: #E57373;
     --card-bg: #FDFEFF;
+    --threshold-line: rgba(74, 85, 104, 0.3);
 }
 
 * {
@@ -142,13 +143,14 @@ h1 {
     margin-top: 4px;
 }
 
-/* Progress Bars */
+/* Progress Bars with Thresholds */
 .metric-bar {
     height: 8px;
     background: rgba(255, 255, 255, 0.5);
     border-radius: 4px;
-    overflow: hidden;
+    overflow: visible;
     margin-top: 8px;
+    position: relative;
 }
 
 .metric-bar-fill {
@@ -156,6 +158,96 @@ h1 {
     background: var(--text-dark);
     border-radius: 4px;
     transition: width 0.5s ease, background-color 0.3s ease;
+}
+
+/* Threshold indicators */
+.metric-bar .threshold-indicator {
+    position: absolute;
+    top: -2px;
+    bottom: -2px;
+    width: 2px;
+    background: var(--threshold-line);
+    z-index: 1;
+    pointer-events: none;
+}
+
+/* CPU Sparkline */
+.cpu-sparkline-container {
+    margin-top: 12px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.cpu-sparkline {
+    width: 100%;
+    height: 40px;
+    display: block;
+}
+
+.cpu-sparkline polyline {
+    fill: none;
+    stroke: var(--text-dark);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.sparkline-label {
+    font-size: 0.75rem;
+    color: var(--text-light);
+    margin-bottom: 4px;
+    text-align: center;
+}
+
+/* Disk Breakdown */
+.disk-breakdown {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.disk-breakdown-title {
+    font-size: 0.85rem;
+    color: var(--text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.disk-breakdown-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.disk-breakdown-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 8px;
+    background: rgba(255, 255, 255, 0.4);
+    border-radius: 6px;
+    font-size: 0.85rem;
+}
+
+.disk-breakdown-name {
+    color: var(--text-dark);
+    font-weight: 500;
+    flex: 1;
+}
+
+.disk-breakdown-size {
+    color: var(--text-light);
+    font-weight: 600;
+}
+
+.disk-breakdown-loading {
+    text-align: center;
+    padding: 12px;
+    color: var(--text-light);
+    font-size: 0.85rem;
+    font-style: italic;
 }
 
 /* Services Grid */
@@ -167,13 +259,19 @@ h1 {
 
 .service-item {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
+    flex-direction: column;
     padding: 12px;
     background: var(--pale-blue);
     border-radius: 8px;
     font-size: 0.9rem;
     transition: background 0.3s ease;
+}
+
+.service-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
 }
 
 .service-name {
@@ -186,6 +284,7 @@ h1 {
     height: 12px;
     border-radius: 50%;
     transition: background-color 0.3s ease;
+    flex-shrink: 0;
 }
 
 .service-status.active {
@@ -196,6 +295,13 @@ h1 {
 .service-status.inactive {
     background-color: var(--danger);
     box-shadow: 0 0 8px var(--danger);
+}
+
+.service-uptime {
+    font-size: 0.75rem;
+    color: var(--text-light);
+    margin-top: 2px;
+    font-weight: 500;
 }
 
 /* Status Badge */

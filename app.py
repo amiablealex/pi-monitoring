@@ -4,7 +4,10 @@ import subprocess
 import requests
 import socket
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
+from collections import deque
+import time
+import json
 
 app = Flask(__name__)
 
@@ -21,11 +24,43 @@ SERVICES_TO_MONITOR = [
     'vantix'
 ]
 
+# Directories to monitor for disk breakdown
+APP_DIRECTORIES = [
+    '/home/pi/kitsniff',
+    '/home/pi/kitchentable',
+    '/home/pi/prism',
+    '/home/pi/fpl-dashboard',
+    '/home/pi/monitoring-dashboard',
+    '/home/pi/pynapple'
+]
+
+# CPU trend tracking - stores last 60 minutes (1 point per minute)
+cpu_trend_data = deque(maxlen=60)
+last_cpu_trend_update = 0
+CPU_TREND_INTERVAL = 60  # seconds
+
+# Disk breakdown cache - updates every 12 hours
+disk_breakdown_cache = {
+    'data': [],
+    'timestamp': 0,
+    'ttl': 43200  # 12 hours in seconds
+}
+
 def get_system_stats():
     """Get CPU, RAM, Temperature, and Disk stats"""
     try:
         # CPU Usage
         cpu_percent = psutil.cpu_percent(interval=1)
+        
+        # Update CPU trend (once per minute)
+        global last_cpu_trend_update
+        current_time = time.time()
+        if current_time - last_cpu_trend_update >= CPU_TREND_INTERVAL:
+            cpu_trend_data.append({
+                'value': round(cpu_percent, 1),
+                'timestamp': int(current_time)
+            })
+            last_cpu_trend_update = current_time
         
         # RAM Usage (Critical for 1GB system)
         ram = psutil.virtual_memory()
@@ -62,8 +97,62 @@ def get_system_stats():
         print(f"Error getting system stats: {e}")
         return None
 
+def get_service_uptime(service_name):
+    """Get service uptime in human-readable format"""
+    try:
+        # Get service start time using systemctl show
+        result = subprocess.run(
+            ['systemctl', 'show', service_name, '--property=ActiveEnterTimestamp'],
+            capture_output=True,
+            text=True,
+            timeout=2
+        )
+        
+        if result.returncode == 0 and result.stdout.strip():
+            # Parse output: ActiveEnterTimestamp=Thu 2024-01-01 12:00:00 GMT
+            timestamp_str = result.stdout.strip().split('=')[1]
+            
+            if timestamp_str and timestamp_str != '':
+                # Parse the timestamp
+                try:
+                    # Try different timestamp formats
+                    for fmt in ['%a %Y-%m-%d %H:%M:%S %Z', '%a %Y-%m-%d %H:%M:%S %z']:
+                        try:
+                            start_time = datetime.strptime(timestamp_str, fmt)
+                            break
+                        except ValueError:
+                            continue
+                    else:
+                        # If parsing fails, return None
+                        return None
+                    
+                    # Calculate uptime
+                    uptime = datetime.now() - start_time.replace(tzinfo=None)
+                    
+                    # Format uptime
+                    days = uptime.days
+                    hours, remainder = divmod(uptime.seconds, 3600)
+                    minutes, _ = divmod(remainder, 60)
+                    
+                    if days > 0:
+                        return f"{days}d {hours}h"
+                    elif hours > 0:
+                        return f"{hours}h {minutes}m"
+                    else:
+                        return f"{minutes}m"
+                        
+                except Exception as e:
+                    print(f"Error parsing timestamp for {service_name}: {e}")
+                    return None
+        
+        return None
+        
+    except Exception as e:
+        print(f"Error getting uptime for {service_name}: {e}")
+        return None
+
 def check_service_status(service_name):
-    """Check if a systemd service is active"""
+    """Check if a systemd service is active and get uptime"""
     try:
         result = subprocess.run(
             ['systemctl', 'is-active', service_name],
@@ -71,10 +160,23 @@ def check_service_status(service_name):
             text=True,
             timeout=2
         )
-        return result.stdout.strip() == 'active'
+        is_active = result.stdout.strip() == 'active'
+        
+        # Get uptime if service is active
+        uptime = None
+        if is_active:
+            uptime = get_service_uptime(service_name)
+        
+        return {
+            'active': is_active,
+            'uptime': uptime
+        }
     except Exception as e:
         print(f"Error checking service {service_name}: {e}")
-        return False
+        return {
+            'active': False,
+            'uptime': None
+        }
 
 def get_service_statuses():
     """Get status of all monitored services"""
@@ -82,6 +184,65 @@ def get_service_statuses():
     for service in SERVICES_TO_MONITOR:
         statuses[service] = check_service_status(service)
     return statuses
+
+def get_directory_size(path):
+    """Get size of directory in MB using du command"""
+    try:
+        if not os.path.exists(path):
+            return None
+        
+        result = subprocess.run(
+            ['du', '-sm', path],
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+        
+        if result.returncode == 0:
+            # Output format: "123\t/path/to/dir"
+            size_mb = int(result.stdout.split('\t')[0])
+            return size_mb
+        
+        return None
+        
+    except Exception as e:
+        print(f"Error getting size for {path}: {e}")
+        return None
+
+def get_disk_breakdown():
+    """Get disk usage breakdown for app directories (cached)"""
+    global disk_breakdown_cache
+    
+    current_time = time.time()
+    
+    # Check if cache is valid
+    if (current_time - disk_breakdown_cache['timestamp']) < disk_breakdown_cache['ttl']:
+        return disk_breakdown_cache['data']
+    
+    # Cache expired or empty - recalculate
+    print("Calculating disk breakdown (this may take a moment)...")
+    
+    breakdown = []
+    for directory in APP_DIRECTORIES:
+        size_mb = get_directory_size(directory)
+        if size_mb is not None:
+            breakdown.append({
+                'path': directory,
+                'name': os.path.basename(directory),
+                'size_mb': size_mb,
+                'size_gb': round(size_mb / 1024, 2)
+            })
+    
+    # Sort by size (largest first)
+    breakdown.sort(key=lambda x: x['size_mb'], reverse=True)
+    
+    # Update cache
+    disk_breakdown_cache['data'] = breakdown
+    disk_breakdown_cache['timestamp'] = current_time
+    
+    print(f"Disk breakdown cached at {datetime.fromtimestamp(current_time)}")
+    
+    return breakdown
 
 def get_pihole_stats():
     """Fetch Pi-hole statistics from FTL database"""
@@ -247,6 +408,8 @@ def api_stats():
             'pihole': get_pihole_stats(),
             'network': get_network_info(),
             'uptime': get_uptime(),
+            'cpu_trend': list(cpu_trend_data),
+            'disk_breakdown': get_disk_breakdown(),
             'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
         return jsonify(stats)
@@ -260,4 +423,8 @@ def health():
     return jsonify({'status': 'ok'}), 200
 
 if __name__ == '__main__':
+    # Initialize disk breakdown cache on startup
+    print("Initializing dashboard...")
+    get_disk_breakdown()
+    
     app.run(host='0.0.0.0', port=8011, debug=False)

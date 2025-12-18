@@ -25,11 +25,24 @@
                         <div class="metric-bar">
                             <div class="metric-bar-fill" id="cpu-bar"></div>
                         </div>
+                        
+                        <!-- CPU Sparkline -->
+                        <div class="cpu-sparkline-container" id="cpu-sparkline-container" style="display: none;">
+                            <div class="sparkline-label">Last 60 minutes</div>
+                            <svg class="cpu-sparkline" id="cpu-sparkline" viewBox="0 0 300 40" preserveAspectRatio="none">
+                                <!-- Polyline will be added by JavaScript -->
+                            </svg>
+                        </div>
                     </div>
+                    
                     <div class="metric">
                         <div class="metric-label">CPU Temp</div>
                         <div class="metric-value" id="cpu-temp">--°C</div>
+                        <div class="metric-bar">
+                            <div class="metric-bar-fill" id="cpu-temp-bar"></div>
+                        </div>
                     </div>
+                    
                     <div class="metric">
                         <div class="metric-label">RAM Usage</div>
                         <div class="metric-value" id="ram-usage">-- MB</div>
@@ -38,6 +51,7 @@
                         </div>
                         <div class="metric-subtext" id="ram-detail">-- / -- MB (--% free)</div>
                     </div>
+                    
                     <div class="metric">
                         <div class="metric-label">Disk Space</div>
                         <div class="metric-value" id="disk-usage">-- GB</div>
@@ -45,7 +59,16 @@
                             <div class="metric-bar-fill" id="disk-bar"></div>
                         </div>
                         <div class="metric-subtext" id="disk-detail">-- / -- GB used</div>
+                        
+                        <!-- Disk Breakdown -->
+                        <div class="disk-breakdown">
+                            <div class="disk-breakdown-title">App Folders</div>
+                            <div class="disk-breakdown-list" id="disk-breakdown-list">
+                                <div class="disk-breakdown-loading">Loading...</div>
+                            </div>
+                        </div>
                     </div>
+                    
                     <div class="metric">
                         <div class="metric-label">Uptime</div>
                         <div class="metric-value" id="uptime">--</div>
@@ -66,7 +89,7 @@
                 <h2 class="card-title">🛡️ Pi-hole</h2>
                 <div class="metric-grid">
                     <div class="metric highlight">
-                        <div class="metric-label">Ads Blocked Today</div>
+                        <div class="metric-label">Ads Blocked Last 24h</div>
                         <div class="metric-value large" id="ads-blocked">--</div>
                     </div>
                     <div class="metric">
@@ -105,7 +128,7 @@
         </div>
 
         <footer>
-            <p>Auto-refreshes every 10 seconds</p>
+            <p>Auto-refreshes every 10 seconds • CPU trend updates every minute • Disk breakdown cached for 12 hours</p>
         </footer>
     </div>
 
